@@ -1,0 +1,11 @@
+# images folder
+data/*
+
+# for structure
+!data/.gitkeep
+
+# env if u used itls
+.env
+
+# os file
+.DS_Store
