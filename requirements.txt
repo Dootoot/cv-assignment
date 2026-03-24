@@ -1,1 +1,6 @@
 # List of python libs used
+opencv-python
+numpy
+scikit-learn
+pandas
+scikit-image
