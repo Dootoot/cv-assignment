@@ -9,3 +9,6 @@ data/*
 
 # os file
 .DS_Store
+
+# please do not commit ur venvs
+.venv
