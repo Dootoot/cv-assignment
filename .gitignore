@@ -1,10 +1,14 @@
 # images folder
 data/*
-
 # for structure
 !data/.gitkeep
 
-# env if u used itls
+# trained models folders, do not commit your models to repo
+models/*
+# for structure
+!models/.gitkeep
+
+# env if u used it
 .env
 
 # os file
