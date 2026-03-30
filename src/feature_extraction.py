@@ -45,6 +45,15 @@ def extract_rgb_channels(image_bgr):
 
 def extract_excess_green_index(image_bgr):
     r, g, b = extract_rgb_channels(image_bgr)
-    ee_index = 2 * g - r - b
+    # might overflow so just typecasted to float32 to be a bit safer
+    ee_index = 2 * g.astype(np.float32) - r.astype(np.float32) - b.astype(np.float32)
 
     return ee_index
+
+# normalised might be better since it is robust against lighting variation
+def extract_normalised_excess_green_index(image_bgr):
+    r, g, b = extract_rgb_channels(image_bgr)
+    r, g, b = r.astype(np.float32), g.astype(np.float32), b.astype(np.float32)
+
+    # added e^-5 (very small number) to prevent division by 0 issue
+    return (2 * g - r - b) / (r + g + b + 1e-5)

@@ -4,9 +4,17 @@
 
 # an example of how we could use this is
 # image -> apply filter -> superpixel clustering -> label superpixels in model
+
+
+"""
+Temp notes:
+may need to discuss whether cv2 already computes convolutions
+with pt-wise multiplication with FFT or does it discretely directly since modern CPUs
+are more optimised to handle these
+"""
 import cv2
 import numpy as np
-from skimage.segmentation import slic, mark_boundaries
+from skimage.segmentation import slic
 
 
 # good for removing things like salt and pepper noise but may remove too much detail
@@ -20,7 +28,7 @@ def apply_median_filter(image: np.ndarray, sampling_diameter = 5) -> np.ndarray:
 
     return median_filtered_image
 
-def apply_bilateral_filter(image: np.ndarray, sampling_diameter = 5, sigma_colour = 15, sigma_space = 15) -> np.ndarray:
+def apply_bilateral_filter(image: np.ndarray, sampling_diameter = 5, sigma_colour = 25, sigma_space = 25) -> np.ndarray:
 
     if image is None:
         raise RuntimeError()
@@ -44,7 +52,7 @@ def apply_SLIC_superpixel(image: np.ndarray, num_segments = 400, compactness = 1
     # currently assume image is in BGR (cv reads RGB as BGR)
     image_Lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
 
-    superpixel_image = slic(image_Lab, n_segments = num_segments, compactness = compactness, start_label = 1)
+    superpixel_image = slic(image_Lab, n_segments = num_segments, compactness = compactness, start_label = 1, convert2lab = False)
 
     return superpixel_image
 
@@ -56,8 +64,9 @@ def apply_sobel_filter(image: np.ndarray, kernel_size = 3, shifting_delta = 0) -
         raise RuntimeError()
 
     # float64 to prevent negatives being set to 0
-    x_sobel = cv2.Sobel(image, cv2.CV_64F, 1, 0, k_size = kernel_size, delta = shifting_delta) # type: ignore
-    y_sobel = cv2.Sobel(image, cv2.CV_64F, 0, 1, k_size = kernel_size, delta = shifting_delta) # type: ignore
+    image_grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    x_sobel = cv2.Sobel(image_grayscale, cv2.CV_64F, 1, 0, k_size = kernel_size, delta = shifting_delta) # type: ignore
+    y_sobel = cv2.Sobel(image_grayscale, cv2.CV_64F, 0, 1, k_size = kernel_size, delta = shifting_delta) # type: ignore
 
     # just as a note, .Sobel() returns a convolution of image array made of its directional derivatives as entries to the image matrix
 
