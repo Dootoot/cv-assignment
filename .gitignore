@@ -16,3 +16,5 @@ models/*
 
 # please do not commit ur venvs
 .venv
+
+__pycache__/

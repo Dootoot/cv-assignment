@@ -38,7 +38,7 @@ def generate_trained_randomforest(model_dir: str, image_folder_path: str):
     y_train = np.concatenate(y_all)
 
     # create forest object
-    random_forest = RandomForestClassifier(n_estimators = 100, class_weight = "balanced", min_samples_leaf = 5, n_jobs = -1, random_state = 2006)
+    random_forest = RandomForestClassifier(n_estimators = 100, class_weight = "balanced", min_samples_leaf = 3, n_jobs = -1, random_state = 2006)
     random_forest.fit(X_train, y_train)
 
     # save model now
@@ -83,6 +83,10 @@ def single_image_predict_from_trained_randomforest(rf: RandomForestClassifier, i
         if y_pred[index] == 1:
             output_mask[superpixel_labels == label] = 255
     
+    # temp morphology testing to see if it makes result more accurate
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    output_mask = cv2.morphologyEx(output_mask, cv2.MORPH_OPEN, kernel)
+    output_mask = cv2.morphologyEx(output_mask, cv2.MORPH_CLOSE, kernel)
 
     return output_mask
 

@@ -4,3 +4,6 @@ numpy
 scikit-learn
 pandas
 scikit-image
+python-dotenv
+joblib
+xgboost
