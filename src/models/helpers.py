@@ -165,7 +165,7 @@ def extract_feature_maps(image) -> dict[str, Any]:
     # for super pixel region labelling (spatially aligned essentially)
     lbp_map = feature_extraction.extract_lbp_texture_map(bilateral_filtered_image)
 
-    superpixel_labels = preprocessing.apply_SLIC_superpixel(bilateral_filtered_image)
+    superpixel_labels = preprocessing.apply_SLIC_superpixel(image)
 
     return {
         "colour_maps": [lab_l, lab_a, lab_b, h, s, v, r, g, b, exG],
