@@ -7,3 +7,6 @@ scikit-image
 python-dotenv
 joblib
 xgboost
+torch
+torchvision
+albumentations
