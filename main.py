@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from src.models.random_forest import load_trained_randomforest, generate_trained_randomforest, predict_from_trained_randomforest
 from src.models.xg_boosted_tree import load_trained_xgboost, generate_trained_xgboost, predict_from_trained_xgboost
 from src.models.unet import load_trained_unet, generate_trained_unet, predict_from_trained_unet
+from src.traditional.watershed import watershed
 
 load_dotenv()
 
@@ -88,9 +89,10 @@ def main_menu():
         print("1. Random Forest")
         print("2. XGBoost")
         print("3. U-net CNN")
-        print("4. Exit")
+        print("4. Watershed(traditional)")
+        print("5. Exit")
 
-        choice = input("Enter your choice (1/2/3/4): ")
+        choice = input("Enter your choice (1/2/3/4/5): ")
 
         match choice:
             case "1":
@@ -122,6 +124,9 @@ def main_menu():
                     has_feature_importances = False
                 )
             case "4":
+                watershed(train_path)
+
+            case "5":
                 print("Exiting...")
                 break
             case _:
