@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 from src.models.random_forest import load_trained_randomforest, generate_trained_randomforest, predict_from_trained_randomforest
 from src.models.xg_boosted_tree import load_trained_xgboost, generate_trained_xgboost, predict_from_trained_xgboost
 from src.models.unet import load_trained_unet, generate_trained_unet, predict_from_trained_unet
-
+from src.models.svm import load_trained_svm, generate_trained_svm, predict_from_trained_svm
+from src.models.fpn import load_trained_fpn, generate_trained_fpn, predict_from_trained_fpn
 load_dotenv()
 
 model_dir = os.getenv("TRAINED_MODEL_PATH")
@@ -88,9 +89,11 @@ def main_menu():
         print("1. Random Forest")
         print("2. XGBoost")
         print("3. U-net CNN")
-        print("4. Exit")
+        print("4. SVM")
+        print("5. FPN")
+        print("6. Exit")
 
-        choice = input("Enter your choice (1/2/3/4): ")
+        choice = input("Enter your choice (1/2/3/4/5/6): ")
 
         match choice:
             case "1":
@@ -122,6 +125,26 @@ def main_menu():
                     has_feature_importances = False
                 )
             case "4":
+                train_or_test_prompt(
+                    "SVM",
+                    load_trained_svm,
+                    generate_trained_svm,
+                    predict_from_trained_svm,
+                    "svm_model.joblib",
+                    train_args = (model_dir, train_path),
+                    has_feature_importances = False
+                )
+            case "5":
+                train_or_test_prompt(
+                    "FPN",
+                    load_trained_fpn,
+                    generate_trained_fpn,
+                    predict_from_trained_fpn,
+                    "fpn_model.pth",
+                    train_args = (model_dir, train_path, val_path),
+                    has_feature_importances = False
+                )
+            case "6":
                 print("Exiting...")
                 break
             case _:
