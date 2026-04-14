@@ -6,7 +6,6 @@ from src.models.random_forest import load_trained_randomforest, generate_trained
 from src.models.xg_boosted_tree import load_trained_xgboost, generate_trained_xgboost, predict_from_trained_xgboost
 from src.models.unet import load_trained_unet, generate_trained_unet, predict_from_trained_unet
 from src.models.svm import load_trained_svm, generate_trained_svm, predict_from_trained_svm
-
 load_dotenv()
 
 model_dir = os.getenv("TRAINED_MODEL_PATH")
