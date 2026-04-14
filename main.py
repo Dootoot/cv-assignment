@@ -124,6 +124,16 @@ def main_menu():
                     has_feature_importances = False
                 )
             case "4":
+                train_or_test_prompt(
+                    "SVM",
+                    load_trained_svm,
+                    generate_trained_svm,
+                    predict_from_trained_svm,
+                    "svm_model.joblib",
+                    train_args = (model_dir, train_path),
+                    has_feature_importances = False
+                )
+            case "5":
                 print("Exiting...")
                 break
             case _:
