@@ -89,9 +89,10 @@ def main_menu():
         print("1. Random Forest")
         print("2. XGBoost")
         print("3. U-net CNN")
-        print("4. Exit")
-
-        choice = input("Enter your choice (1/2/3/4): ")
+        print("4. SVM")
+        print("5. Exit")
+        
+        choice = input("Enter your choice (1/2/3/4/5): ")
 
         match choice:
             case "1":
