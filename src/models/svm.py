@@ -170,4 +170,4 @@ def postprocess_mask(pred_mask: np.ndarray):
         if (not touches_border) and area <= 100:
             mask[labels_inv == i] = 1
 
-
+    return mask
