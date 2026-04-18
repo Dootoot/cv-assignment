@@ -6,6 +6,7 @@ from src.models.random_forest import load_trained_randomforest, generate_trained
 from src.models.xg_boosted_tree import load_trained_xgboost, generate_trained_xgboost, predict_from_trained_xgboost
 from src.models.unet import load_trained_unet, generate_trained_unet, predict_from_trained_unet
 from src.traditional.watershed import watershed
+from src.models.helpers import compute_metrics
 
 load_dotenv()
 
@@ -124,7 +125,9 @@ def main_menu():
                     has_feature_importances = False
                 )
             case "4":
-                watershed(train_path)
+                result, ground_truth_image = watershed(train_path)
+                metrics = compute_metrics(result, ground_truth_image)
+                print(metrics)
 
             case "5":
                 print("Exiting...")
