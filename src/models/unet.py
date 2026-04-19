@@ -162,7 +162,7 @@ def _get_device():
 
     # if torch.backends.mps.is_available():
     #     return torch.device("mps")
-    return torch.device("cpu")
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def _run_one_epoch(model, dataloader, criterion, optimizer, device):
