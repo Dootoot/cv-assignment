@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from src.models.random_forest import load_trained_randomforest, generate_trained_randomforest, predict_from_trained_randomforest
 from src.models.xg_boosted_tree import load_trained_xgboost, generate_trained_xgboost, predict_from_trained_xgboost
 from src.models.unet import load_trained_unet, generate_trained_unet, predict_from_trained_unet
+from src.models.transformer import load_trained_transformer, generate_trained_transformer, predict_from_trained_transformer
 from src.models.svm import load_trained_svm, generate_trained_svm, predict_from_trained_svm
 from src.models.fpn import load_trained_fpn, generate_trained_fpn, predict_from_trained_fpn
 load_dotenv()
@@ -89,11 +90,12 @@ def main_menu():
         print("1. Random Forest")
         print("2. XGBoost")
         print("3. U-net CNN")
-        print("4. SVM")
-        print("5. FPN")
-        print("6. Exit")
+        print("4. SegFormer Transformer")
+        print("5. SVM")
+        print("6. FPN")
+        print("7. Exit")
 
-        choice = input("Enter your choice (1/2/3/4/5/6): ")
+        choice = input("Enter your choice (1-7): ")
 
         match choice:
             case "1":
@@ -126,6 +128,16 @@ def main_menu():
                 )
             case "4":
                 train_or_test_prompt(
+                    "SegFormer Transformer",
+                    load_trained_transformer,
+                    generate_trained_transformer,
+                    predict_from_trained_transformer,
+                    "segformer_b2_best.pth",
+                    train_args = (model_dir, train_path, val_path),
+                    has_feature_importances = False
+                )
+            case "5":
+                train_or_test_prompt(
                     "SVM",
                     load_trained_svm,
                     generate_trained_svm,
@@ -134,7 +146,7 @@ def main_menu():
                     train_args = (model_dir, train_path),
                     has_feature_importances = False
                 )
-            case "5":
+            case "6":
                 train_or_test_prompt(
                     "FPN",
                     load_trained_fpn,
@@ -144,7 +156,7 @@ def main_menu():
                     train_args = (model_dir, train_path, val_path),
                     has_feature_importances = False
                 )
-            case "6":
+            case "7":
                 print("Exiting...")
                 break
             case _:

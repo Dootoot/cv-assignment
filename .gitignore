@@ -8,6 +8,10 @@ models/*
 # for structure
 !models/.gitkeep
 
+# output of traditional methods
+output/*
+!output/.gitkeep
+
 # env if u used it
 .env
 

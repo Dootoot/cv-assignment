@@ -245,6 +245,8 @@ def generate_trained_unet(model_dir: str, image_folder_path: str, val_path: str)
                 print("Stopped early due to patience counter hitting threshold (no improvements in 10 epochs)")
                 break
 
+    print(f"\nlowest validation loss: {best_val_loss:.4f}")
+
     # load the best checkpoint (not necessarily the last epoch)
     model.load_state_dict(torch.load(save_path, map_location = device, weights_only = True))
     model.eval()
