@@ -8,6 +8,8 @@ from src.models.unet import load_trained_unet, generate_trained_unet, predict_fr
 from src.models.transformer import load_trained_transformer, generate_trained_transformer, predict_from_trained_transformer
 from src.models.svm import load_trained_svm, generate_trained_svm, predict_from_trained_svm
 from src.models.fpn import load_trained_fpn, generate_trained_fpn, predict_from_trained_fpn
+from src.models.knn import load_trained_knn, generate_trained_knn, predict_from_trained_knn
+from src.models.mlp import load_trained_mlp, generate_trained_mlp, predict_from_trained_mlp
 load_dotenv()
 
 model_dir = os.getenv("TRAINED_MODEL_PATH")
@@ -93,9 +95,11 @@ def main_menu():
         print("4. SegFormer Transformer")
         print("5. SVM")
         print("6. FPN")
-        print("7. Exit")
+        print("7. KNN")
+        print("8. MLP")
+        print("9. Exit")
 
-        choice = input("Enter your choice (1-7): ")
+        choice = input("Enter your choice (1-9): ")
 
         match choice:
             case "1":
@@ -157,6 +161,26 @@ def main_menu():
                     has_feature_importances = False
                 )
             case "7":
+                train_or_test_prompt(
+                    "K-nn",
+                    load_trained_knn,
+                    generate_trained_knn,
+                    predict_from_trained_knn,
+                    "knn_model.joblib",
+                    train_args=(model_dir, train_path),
+                    has_feature_importances=False
+                )
+            case "8":
+                train_or_test_prompt(
+                    "MLP",
+                    load_trained_mlp,
+                    generate_trained_mlp,
+                    predict_from_trained_mlp,
+                    "mlp_model.pth",
+                    train_args=(model_dir, train_path, val_path),
+                    has_feature_importances=False
+                )
+            case "9":
                 print("Exiting...")
                 break
             case _:
