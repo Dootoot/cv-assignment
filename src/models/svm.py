@@ -119,33 +119,11 @@ def extract_raw_high_fidelity_features(image_rgb: np.ndarray):
 
     exg = 2 * g - r - b
 
-    exg_norm = np.clip((exg + 1) / 2 * 255, 0, 255).astype(np.uint8)
-    otsu_thresh, _ = cv2.threshold(
-        exg_norm, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )
-
-    dynamic_gate = (otsu_thresh / 255.0 * 2 - 1) * 1.05
-    spectral_mask = (exg > dynamic_gate).astype(np.float32)
-
-    kernel = np.ones((3, 3), np.float32)
-    kernel[1, 1] = 0
-    neighbor_support = cv2.filter2D(spectral_mask, -1, kernel)
-
-    suppression_mask = ((spectral_mask > 0) & (neighbor_support >= 2)).astype(np.float32)
-
-    lab = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2LAB).astype(np.float32) / 255.0
-    hsv = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2HSV).astype(np.float32) / 255.0
-
     feature_stack = [
-        r, g, b,
-        lab[:, :, 1],
-        lab[:, :, 1] * suppression_mask,
-        exg,
-        exg * suppression_mask,
-        neighbor_support,
-        hsv[:, :, 1],
-        cv2.erode(exg.astype(np.float32), np.ones((3, 3))),
-        cv2.GaussianBlur(exg.astype(np.float32), (3, 3), 0)
+        r,
+        g,
+        b,
+        exg
     ]
 
     return np.stack(feature_stack, axis=-1).astype(np.float32)
