@@ -85,8 +85,8 @@ def training_knn_pipeline_on_image(image_path: str):
     return feature_matrix, truth_map
 
 
-def predict_from_trained_knn(output_dir: str, rf: KNeighborsClassifier, testing_folder: str):
-    return predict_from_trained_model(output_dir, testing_folder, rf, single_image_predict_from_trained_knn)
+def predict_from_trained_knn(output_dir: str, knn: KNeighborsClassifier, testing_folder: str):
+    return predict_from_trained_model(output_dir, testing_folder, knn, single_image_predict_from_trained_knn)
 
 
 def single_image_predict_from_trained_knn(knn: KNeighborsClassifier, image_path: str):
