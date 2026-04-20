@@ -1,13 +1,24 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"  # must be before torch import — workaround for Python 3.14 + libomp crash on macOS
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"  # optional: suppress HF symlink warning on Windows
+
 import time
 from dotenv import load_dotenv
+
 from src.models.random_forest import load_trained_randomforest, generate_trained_randomforest, predict_from_trained_randomforest
 from src.models.xg_boosted_tree import load_trained_xgboost, generate_trained_xgboost, predict_from_trained_xgboost
 from src.models.unet import load_trained_unet, generate_trained_unet, predict_from_trained_unet
 from src.models.transformer import load_trained_transformer, generate_trained_transformer, predict_from_trained_transformer
 from src.models.svm import load_trained_svm, generate_trained_svm, predict_from_trained_svm
 from src.models.fpn import load_trained_fpn, generate_trained_fpn, predict_from_trained_fpn
+from src.models.knn import load_trained_knn, generate_trained_knn, predict_from_trained_knn
+from src.models.mlp import load_trained_mlp, generate_trained_mlp, predict_from_trained_mlp
+from src.models.deeplabv3plus import (
+    load_trained_deeplabv3plus,
+    generate_trained_deeplabv3plus,
+    predict_from_trained_deeplabv3plus
+)
+
 load_dotenv()
 
 model_dir = os.getenv("TRAINED_MODEL_PATH")
@@ -27,15 +38,17 @@ feature_names = [
     "area", "eccentricity", "compactness"
 ]
 
+
 def print_feature_importances(model):
     print("\n--- Feature Importances ---")
-    for name, score in sorted(zip(feature_names, model.feature_importances_), key = lambda x: -x[1]):
+    for name, score in sorted(zip(feature_names, model.feature_importances_), key=lambda x: -x[1]):
         print(f"  {name}: {score:.4f}")
 
-def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filename, train_args, has_feature_importances = True):
-    print(f"\n{'='*60}")
+
+def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filename, train_args, has_feature_importances=True):
+    print(f"\n{'=' * 60}")
     print(f"{model_name} selected")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print("1. Train new model (overwrites existing)")
     print("2. Test existing model on validation set")
     print("3. Back")
@@ -44,20 +57,19 @@ def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filena
 
     match choice:
         case "1":
-            # delete existing model file if present
             model_path = os.path.join(str(model_dir), model_filename)
             if os.path.exists(model_path):
                 os.remove(model_path)
                 print("Removed old saved model.")
-            print(f"Training {model_name}...")
 
+            print(f"Training {model_name}...")
             start = time.time()
             model = train_fn(*train_args)
             print(f"Training time: {time.time() - start:.2f}s")
+
             if has_feature_importances:
                 print_feature_importances(model)
 
-            # also run validation after training
             start = time.time()
             metrics = predict_fn(output_dir, model, val_path)
             print(f"Validation time: {time.time() - start:.2f}s")
@@ -69,6 +81,7 @@ def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filena
                 print(f"No saved {model_name} model found. Please train first.")
             else:
                 print(f"Loaded saved {model_name} model.")
+
                 if has_feature_importances:
                     print_feature_importances(model)
 
@@ -79,23 +92,28 @@ def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filena
 
         case "3":
             return
+
         case _:
             print("Invalid choice.")
 
+
 def main_menu():
     while True:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("Select a model:")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print("1. Random Forest")
         print("2. XGBoost")
         print("3. U-net CNN")
         print("4. SegFormer Transformer")
         print("5. SVM")
         print("6. FPN")
-        print("7. Exit")
+        print("7. KNN")
+        print("8. MLP")
+        print("9. DeepLabV3+")
+        print("10. Exit")
 
-        choice = input("Enter your choice (1-7): ")
+        choice = input("Enter your choice (1-10): ")
 
         match choice:
             case "1":
@@ -105,8 +123,9 @@ def main_menu():
                     generate_trained_randomforest,
                     predict_from_trained_randomforest,
                     "random_forest_model.joblib",
-                    train_args = (model_dir, train_path)
+                    train_args=(model_dir, train_path)
                 )
+
             case "2":
                 train_or_test_prompt(
                     "XGBoost",
@@ -114,8 +133,9 @@ def main_menu():
                     generate_trained_xgboost,
                     predict_from_trained_xgboost,
                     "xgboost_model.joblib",
-                    train_args = (model_dir, train_path)
+                    train_args=(model_dir, train_path)
                 )
+
             case "3":
                 train_or_test_prompt(
                     "U-Net (CNN)",
@@ -123,9 +143,10 @@ def main_menu():
                     generate_trained_unet,
                     predict_from_trained_unet,
                     "unet_model.pth",
-                    train_args = (model_dir, train_path, val_path),
-                    has_feature_importances = False
+                    train_args=(model_dir, train_path, val_path),
+                    has_feature_importances=False
                 )
+
             case "4":
                 train_or_test_prompt(
                     "SegFormer Transformer",
@@ -133,9 +154,10 @@ def main_menu():
                     generate_trained_transformer,
                     predict_from_trained_transformer,
                     "segformer_b2_best.pth",
-                    train_args = (model_dir, train_path, val_path),
-                    has_feature_importances = False
+                    train_args=(model_dir, train_path, val_path),
+                    has_feature_importances=False
                 )
+
             case "5":
                 train_or_test_prompt(
                     "SVM",
@@ -143,9 +165,10 @@ def main_menu():
                     generate_trained_svm,
                     predict_from_trained_svm,
                     "svm_model.joblib",
-                    train_args = (model_dir, train_path),
-                    has_feature_importances = False
+                    train_args=(model_dir, train_path),
+                    has_feature_importances=False
                 )
+
             case "6":
                 train_or_test_prompt(
                     "FPN",
@@ -153,14 +176,50 @@ def main_menu():
                     generate_trained_fpn,
                     predict_from_trained_fpn,
                     "fpn_model.pth",
-                    train_args = (model_dir, train_path, val_path),
-                    has_feature_importances = False
+                    train_args=(model_dir, train_path, val_path),
+                    has_feature_importances=False
                 )
+
             case "7":
+                train_or_test_prompt(
+                    "KNN",
+                    load_trained_knn,
+                    generate_trained_knn,
+                    predict_from_trained_knn,
+                    "knn_model.joblib",
+                    train_args=(model_dir, train_path),
+                    has_feature_importances=False
+                )
+
+            case "8":
+                train_or_test_prompt(
+                    "MLP",
+                    load_trained_mlp,
+                    generate_trained_mlp,
+                    predict_from_trained_mlp,
+                    "mlp_model.pth",
+                    train_args=(model_dir, train_path, val_path),
+                    has_feature_importances=False
+                )
+
+            case "9":
+                train_or_test_prompt(
+                    "DeepLabV3+",
+                    load_trained_deeplabv3plus,
+                    generate_trained_deeplabv3plus,
+                    predict_from_trained_deeplabv3plus,
+                    "deeplabv3plus_model.pth",
+                    train_args=(model_dir, train_path, val_path),
+                    has_feature_importances=False
+                )
+
+            case "10":
                 print("Exiting...")
                 break
+
             case _:
                 print("Invalid choice. Please try again.")
+
 
 if __name__ == "__main__":
     main_menu()
