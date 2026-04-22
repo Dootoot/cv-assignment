@@ -21,6 +21,11 @@ from src.models.deeplabv3plus import (
     generate_trained_deeplabv3plus,
     predict_from_trained_deeplabv3plus
 )
+from src.models.xg_boosted_tree_poly import (
+    load_xgboost_poly_bundle,
+    generate_trained_xgboost_poly,
+    predict_from_xgboost_poly
+)
 
 load_dotenv()
 
@@ -55,25 +60,27 @@ class EpochTimingStream:
         self.stream = stream
         self.last_time = time.time()
 
-    def write(self, text):
-        # split into lines
+    def write(self, text: str) -> int:
         lines = text.split("\n")
+        written = 0
 
         for i, line in enumerate(lines):
-            if "Epoch" in line:   # simple check instead of regex
+            if "Epoch" in line:
                 now = time.time()
                 elapsed = now - self.last_time
                 self.last_time = now
                 line = f"{line} | Epoch Time: {elapsed:.2f}s"
 
-            # write line (restore newline except last)
-            if i < len(lines) - 1:
-                self.stream.write(line + "\n")
-            else:
-                self.stream.write(line)
+            out = line + "\n" if i < len(lines) - 1 else line
+            written += self.stream.write(out)
+
+        return written
 
     def flush(self):
         self.stream.flush()
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
 
 def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filename, train_args, has_feature_importances=True):
     print(f"\n{'=' * 60}")
@@ -94,7 +101,7 @@ def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filena
 
             print(f"Training {model_name}...")
             start = time.time()
-            with redirect_stdout(EpochTimingStream(sys.stdout)):
+            with redirect_stdout(EpochTimingStream(sys.stdout)):  # type: ignore[arg-type]
                 model = train_fn(*train_args)
             print(f"Training time: {time.time() - start:.2f}s")
 
@@ -142,9 +149,10 @@ def main_menu():
         print("7. KNN")
         print("8. MLP")
         print("9. DeepLabV3+")
-        print("10. Exit")
+        print("10. XGBoost (Polynomial Inflated + Pruned)")
+        print("11. Exit")
 
-        choice = input("Enter your choice (1-10): ")
+        choice = input("Enter your choice (1-11): ")
 
         match choice:
             case "1":
@@ -245,6 +253,17 @@ def main_menu():
                 )
 
             case "10":
+                train_or_test_prompt(
+                    "XGBoost (Polynomial Inflated + Pruned)",
+                    load_xgboost_poly_bundle,
+                    generate_trained_xgboost_poly,
+                    predict_from_xgboost_poly,
+                    "xgboost_poly_model.joblib",
+                    train_args=(model_dir, train_path),
+                    has_feature_importances=False
+                )
+
+            case "11":
                 print("Exiting...")
                 break
 

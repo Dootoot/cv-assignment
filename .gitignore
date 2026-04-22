@@ -11,6 +11,7 @@ models/*
 # output of traditional methods
 output/*
 !output/.gitkeep
+report_images/
 
 # env if u used it
 .env

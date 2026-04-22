@@ -86,6 +86,9 @@ def single_image_predict_from_trained_xgboost(xgb: XGBClassifier, image_path: st
     for index, label in enumerate(np.unique(superpixel_labels)):
         if y_pred[index] == 1:
             output_mask[superpixel_labels == label] = 255
-    
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    output_mask = cv2.morphologyEx(output_mask, cv2.MORPH_OPEN, kernel)
+    output_mask = cv2.morphologyEx(output_mask, cv2.MORPH_CLOSE, kernel)
 
     return output_mask
