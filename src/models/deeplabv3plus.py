@@ -1,4 +1,4 @@
-# 文件路径: src/models/deeplabv3plus.py
+# File path: src/models/deeplabv3plus.py
 
 import os
 import cv2
@@ -26,14 +26,14 @@ class EWSWheatDataset(Dataset):
 
         image = cv2.imread(image_path)
         if image is None:
-            raise FileNotFoundError(f"无法读取图像: {image_path}")
+            raise FileNotFoundError(f"Unable to read image: {image_path}")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
         if mask is None:
-            raise FileNotFoundError(f"无法读取 mask: {mask_path}")
+            raise FileNotFoundError(f"Unable to read mask: {mask_path}")
 
-        # 白底黑叶 -> 叶片=1，背景=0
+        # White background + black leaves -> leaf = 1, background = 0
         mask = (mask < 127).astype(np.float32)
 
         if self.transform:
@@ -61,7 +61,7 @@ def get_data_paths(split_dir):
 
     for mp in mask_paths:
         if not os.path.exists(mp):
-            raise FileNotFoundError(f"缺少对应 mask 文件: {mp}")
+            raise FileNotFoundError(f"Missing corresponding mask file: {mp}")
 
     return img_paths, mask_paths
 
@@ -104,9 +104,7 @@ def get_val_transform():
     ])
 
 
-# -----------------------------
-# 模型加载
-# -----------------------------
+# Model loading
 def load_trained_deeplabv3plus(model_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -126,33 +124,31 @@ def load_trained_deeplabv3plus(model_dir):
     return model
 
 
-# -----------------------------
-# TTA 推理
-# -----------------------------
+# TTA inference
 def tta_predict_logits(model, images):
     """
     images: [B, C, H, W]
-    返回平均后的 logits
+    Return the averaged logits.
     """
     logits_list = []
 
-    # 原图
+    # Original image
     logits = model(images)
     logits_list.append(logits)
 
-    # 水平翻转
+    # Horizontal flip
     images_h = torch.flip(images, dims=[3])
     logits_h = model(images_h)
     logits_h = torch.flip(logits_h, dims=[3])
     logits_list.append(logits_h)
 
-    # 垂直翻转
+    # Vertical flip
     images_v = torch.flip(images, dims=[2])
     logits_v = model(images_v)
     logits_v = torch.flip(logits_v, dims=[2])
     logits_list.append(logits_v)
 
-    # 水平+垂直翻转
+    # Horizontal + vertical flip
     images_hv = torch.flip(images, dims=[2, 3])
     logits_hv = model(images_hv)
     logits_hv = torch.flip(logits_hv, dims=[2, 3])
@@ -162,9 +158,7 @@ def tta_predict_logits(model, images):
     return mean_logits
 
 
-# -----------------------------
-# IoU 评估
-# -----------------------------
+# IoU evaluation
 def evaluate_iou(model, loader, device, threshold=0.5, use_tta=False):
     model.eval()
     tp, fp, fn = 0.0, 0.0, 0.0
@@ -204,20 +198,18 @@ def search_best_threshold(model, loader, device, use_tta=False):
     return best_threshold, best_iou
 
 
-# -----------------------------
-# 训练
-# -----------------------------
+# Training
 def generate_trained_deeplabv3plus(model_dir, train_path, val_path):
     os.makedirs(model_dir, exist_ok=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("使用设备:", device)
+    print("Using device:", device)
 
     train_imgs, train_masks = get_data_paths(train_path)
     val_imgs, val_masks = get_data_paths(val_path)
 
-    print(f"训练集数量: {len(train_imgs)}")
-    print(f"验证集数量: {len(val_imgs)}")
+    print(f"Number of training images: {len(train_imgs)}")
+    print(f"Number of validation images: {len(val_imgs)}")
 
     train_dataset = EWSWheatDataset(
         train_imgs,
@@ -233,7 +225,7 @@ def generate_trained_deeplabv3plus(model_dir, train_path, val_path):
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=4,           # 512 输入时更稳
+        batch_size=4,           # More stable for 512 input size
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -261,7 +253,7 @@ def generate_trained_deeplabv3plus(model_dir, train_path, val_path):
         from_logits=True
     )
 
-    # 正类加权，适合前景像素较少
+    # Positive class weighting for sparse foreground pixels
     pos_weight = torch.tensor([3.0], device=device)
     bce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
@@ -316,7 +308,7 @@ def generate_trained_deeplabv3plus(model_dir, train_path, val_path):
 
         avg_train_loss = total_loss / len(train_loader)
 
-        # 验证时用 TTA + 最优阈值搜索
+        # Use TTA + best threshold search during validation
         current_threshold, current_iou = search_best_threshold(
             model,
             val_loader,
@@ -359,15 +351,13 @@ def generate_trained_deeplabv3plus(model_dir, train_path, val_path):
             print(f"Early stopping triggered at epoch {epoch + 1}")
             break
 
-    print(f"训练完成。最佳 Epoch = {best_epoch}, 最佳 IoU = {best_iou:.4f}, 最佳阈值 = {best_threshold:.2f}")
+    print(f"Training completed. Best Epoch = {best_epoch}, Best IoU = {best_iou:.4f}, Best Threshold = {best_threshold:.2f}")
 
     best_model = load_trained_deeplabv3plus(model_dir)
     return best_model
 
 
-# -----------------------------
-# 预测与指标评估
-# -----------------------------
+# Prediction and metric evaluation
 def predict_from_trained_deeplabv3plus(output_dir, model, val_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -420,9 +410,7 @@ def predict_from_trained_deeplabv3plus(output_dir, model, val_path):
     }
 
 
-# -----------------------------
-# 可选：本地调试入口
-# -----------------------------
+# Optional: local debugging entry point
 if __name__ == "__main__":
     model_dir = "./checkpoints"
     train_path = "./dataset_v2_random/train"
@@ -440,4 +428,4 @@ if __name__ == "__main__":
         val_path=val_path
     )
 
-    print("最终验证结果:", metrics)
+    print("Final validation results:", metrics)
