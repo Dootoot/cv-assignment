@@ -48,57 +48,32 @@ def print_feature_importances(model):
         print(f"  {name}: {score:.4f}")
 
 
+import time
+
 class EpochTimingStream:
-    """Annotate epoch log lines with elapsed time since previous epoch line."""
-
-    EPOCH_PATTERN = re.compile(r"^\s*(\[?Epoch\b)", re.IGNORECASE)
-
     def __init__(self, stream):
         self.stream = stream
-        self._buffer = ""
-        self._last_epoch_time = time.time()
+        self.last_time = time.time()
 
-    def write(self, data):
-        self._buffer += data
+    def write(self, text):
+        # split into lines
+        lines = text.split("\n")
 
-        while "\n" in self._buffer:
-            line, self._buffer = self._buffer.split("\n", 1)
-            self._write_line(line, include_newline=True)
+        for i, line in enumerate(lines):
+            if "Epoch" in line:   # simple check instead of regex
+                now = time.time()
+                elapsed = now - self.last_time
+                self.last_time = now
+                line = f"{line} | Epoch Time: {elapsed:.2f}s"
 
-        return len(data)
+            # write line (restore newline except last)
+            if i < len(lines) - 1:
+                self.stream.write(line + "\n")
+            else:
+                self.stream.write(line)
 
     def flush(self):
-        if self._buffer:
-            self._write_line(self._buffer, include_newline=False)
-            self._buffer = ""
         self.stream.flush()
-
-    def _write_line(self, line, include_newline):
-        output = line
-        if self.EPOCH_PATTERN.match(line):
-            now = time.time()
-            epoch_time = now - self._last_epoch_time
-            self._last_epoch_time = now
-            output = f"{line} | Epoch Time: {epoch_time:.2f}s"
-
-        if include_newline:
-            output += "\n"
-
-        self.stream.write(output)
-
-    # ---- add these pass-through methods ----
-    def isatty(self):
-        return self.stream.isatty() if hasattr(self.stream, "isatty") else False
-
-    def fileno(self):
-        return self.stream.fileno()
-
-    @property
-    def encoding(self):
-        return getattr(self.stream, "encoding", "utf-8")
-
-    def __getattr__(self, name):
-        return getattr(self.stream, name)
 
 def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filename, train_args, has_feature_importances=True):
     print(f"\n{'=' * 60}")
