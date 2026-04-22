@@ -33,8 +33,17 @@ def generate_trained_xgboost(model_dir: str, image_folder_path: str):
     X_train = np.vstack(X_all)
     y_train = np.concatenate(y_all)
 
-    # create xgb object
-    xg_boost = XGBClassifier(n_estimators = 100, scale_pos_weight = sum(y_train == 0) / sum(y_train == 1), min_child_weight = 5, n_jobs = -1, random_state = 2006, eval_metric = "logloss")
+    # create xgb object with GPU acceleration
+    xg_boost = XGBClassifier(
+        n_estimators=100, 
+        scale_pos_weight=sum(y_train == 0) / sum(y_train == 1), 
+        min_child_weight=5, 
+        n_jobs=-1, 
+        random_state=2006, 
+        eval_metric="logloss",
+        tree_method="gpu_hist",  # Enable GPU acceleration
+        gpu_id=0  # Use first GPU
+    )
     xg_boost.fit(X_train, y_train)
 
     # save model now

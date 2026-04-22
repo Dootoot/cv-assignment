@@ -156,6 +156,14 @@ class SegmentationDataset(Dataset):
 
 # training helpers
 
+# TEMP: reads pre-augmented images from aug_train/ at repo root; no live transforms applied
+def _build_aug_train_loader(batch_size: int = 4):
+    return DataLoader(
+        SegmentationDataset("data/EWS-Dataset/aug_train", augment=False),
+        batch_size=batch_size, shuffle=True, num_workers=0
+    )
+
+
 def _get_device():
     # MPS can segfault on some macOS versions, uncomment below to try whether urs is ok or not
     # use cuda if u have nvidia
@@ -207,10 +215,9 @@ def generate_trained_unet(model_dir: str, image_folder_path: str, val_path: str)
     device = _get_device()
     print(f"Using device: {device}")
 
-    train_loader = DataLoader(
-        SegmentationDataset(image_folder_path, augment = True),
-        batch_size = 4, shuffle = True, num_workers = 0
-    )
+    # TEMP: using pre-augmented folder for benchmarking — uncomment original line below to revert
+    # train_loader = DataLoader(SegmentationDataset(image_folder_path, augment=True), batch_size=4, shuffle=True, num_workers=0)
+    train_loader = _build_aug_train_loader(batch_size=4)
     val_loader = DataLoader(
         SegmentationDataset(val_path, augment = False),
         batch_size = 4, shuffle = False, num_workers = 0

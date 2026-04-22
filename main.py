@@ -2,7 +2,10 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"  # must be before torch import — workaround for Python 3.14 + libomp crash on macOS
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"  # optional: suppress HF symlink warning on Windows
 
+import re
+import sys
 import time
+from contextlib import redirect_stdout
 from dotenv import load_dotenv
 
 from src.models.random_forest import load_trained_randomforest, generate_trained_randomforest, predict_from_trained_randomforest
@@ -45,6 +48,58 @@ def print_feature_importances(model):
         print(f"  {name}: {score:.4f}")
 
 
+class EpochTimingStream:
+    """Annotate epoch log lines with elapsed time since previous epoch line."""
+
+    EPOCH_PATTERN = re.compile(r"^\s*(\[?Epoch\b)", re.IGNORECASE)
+
+    def __init__(self, stream):
+        self.stream = stream
+        self._buffer = ""
+        self._last_epoch_time = time.time()
+
+    def write(self, data):
+        self._buffer += data
+
+        while "\n" in self._buffer:
+            line, self._buffer = self._buffer.split("\n", 1)
+            self._write_line(line, include_newline=True)
+
+        return len(data)
+
+    def flush(self):
+        if self._buffer:
+            self._write_line(self._buffer, include_newline=False)
+            self._buffer = ""
+        self.stream.flush()
+
+    def _write_line(self, line, include_newline):
+        output = line
+        if self.EPOCH_PATTERN.match(line):
+            now = time.time()
+            epoch_time = now - self._last_epoch_time
+            self._last_epoch_time = now
+            output = f"{line} | Epoch Time: {epoch_time:.2f}s"
+
+        if include_newline:
+            output += "\n"
+
+        self.stream.write(output)
+
+    # ---- add these pass-through methods ----
+    def isatty(self):
+        return self.stream.isatty() if hasattr(self.stream, "isatty") else False
+
+    def fileno(self):
+        return self.stream.fileno()
+
+    @property
+    def encoding(self):
+        return getattr(self.stream, "encoding", "utf-8")
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
 def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filename, train_args, has_feature_importances=True):
     print(f"\n{'=' * 60}")
     print(f"{model_name} selected")
@@ -64,7 +119,8 @@ def train_or_test_prompt(model_name, load_fn, train_fn, predict_fn, model_filena
 
             print(f"Training {model_name}...")
             start = time.time()
-            model = train_fn(*train_args)
+            with redirect_stdout(EpochTimingStream(sys.stdout)):
+                model = train_fn(*train_args)
             print(f"Training time: {time.time() - start:.2f}s")
 
             if has_feature_importances:
