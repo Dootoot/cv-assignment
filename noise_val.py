@@ -5,7 +5,7 @@ import random
 import numpy as np
 
 INPUT_VAL_DIR = "data/EWS-Dataset/validation"
-OUTPUT_VAL_NOISE_DIR = "data/EWS-Dataset/noise_val"
+OUTPUT_VAL_DIR = "data/EWS-Dataset/val_robustness"
 
 SEED = 42
 random.seed(SEED)
@@ -71,23 +71,54 @@ def add_gaussian_noise(image, mean=0, std=12):
     return np.clip(noisy, 0, 255).astype(np.uint8)
 
 
-def change_exposure(image, alpha=1.25, beta=10):
-    # alpha controls contrast/exposure, beta controls brightness
+def change_exposure(image, alpha=1.25, beta=15):
     adjusted = image.astype(np.float32) * alpha + beta
     return np.clip(adjusted, 0, 255).astype(np.uint8)
 
 
-def create_val_noise_exposure(input_val_dir, output_dir):
-    input_val_dir = full_path(input_val_dir)
-    output_dir = full_path(output_dir)
+def add_blur(image, kernel_size=5):
+    return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
 
-    recreate_folder(output_dir)
+
+def add_jpeg_compression(image, quality=35):
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+    success, encoded = cv2.imencode(".jpg", image, encode_param)
+
+    if not success:
+        raise RuntimeError("JPEG compression failed.")
+
+    compressed = cv2.imdecode(encoded, cv2.IMREAD_COLOR)
+    return compressed
+
+
+def save_pair(output_dir, image_name, image, mask):
+    base_name, ext = os.path.splitext(image_name)
+    image_path = os.path.join(output_dir, image_name)
+    mask_path = os.path.join(output_dir, f"{base_name}_mask{ext}")
+
+    cv2.imwrite(image_path, image)
+    cv2.imwrite(mask_path, mask)
+
+
+def save_augmented_pair(output_dir, base_name, ext, suffix, image, mask):
+    image_name = f"{base_name}_{suffix}{ext}"
+    mask_name = f"{base_name}_{suffix}_mask{ext}"
+
+    cv2.imwrite(os.path.join(output_dir, image_name), image)
+    cv2.imwrite(os.path.join(output_dir, mask_name), mask)
+
+
+def create_robustness_validation_set(input_val_dir, output_val_dir):
+    input_val_dir = full_path(input_val_dir)
+    output_val_dir = full_path(output_val_dir)
+
+    recreate_folder(output_val_dir)
 
     pairs = collect_pairs(input_val_dir)
     if not pairs:
         raise ValueError("No valid validation image-mask pairs found.")
 
-    total_saved = 0
+    total_pairs_saved = 0
 
     for image_name, image_path, mask_path in pairs:
         image = read_image(image_path)
@@ -95,31 +126,38 @@ def create_val_noise_exposure(input_val_dir, output_dir):
 
         base_name, ext = os.path.splitext(image_name)
 
-        versions = {
-            "noise": add_gaussian_noise(image, std=12),
-            "bright": change_exposure(image, alpha=1.25, beta=15),
-            "dark": change_exposure(image, alpha=0.75, beta=-10),
-            "noise_bright": change_exposure(add_gaussian_noise(image, std=10), alpha=1.2, beta=10),
+        # save original image and mask
+        save_pair(output_val_dir, image_name, image, mask)
+        total_pairs_saved += 1
+
+        # save four separate robustness versions
+        augmented_versions = {
+            "gaussian_noise": add_gaussian_noise(image, std=12),
+            "exposure": change_exposure(image, alpha=1.25, beta=15),
+            "blur": add_blur(image, kernel_size=5),
+            "compression": add_jpeg_compression(image, quality=35),
         }
 
-        for suffix, aug_image in versions.items():
-            out_image_name = f"{base_name}_{suffix}{ext}"
-            out_mask_name = f"{base_name}_{suffix}_mask{ext}"
-
-            cv2.imwrite(os.path.join(output_dir, out_image_name), aug_image)
-            cv2.imwrite(os.path.join(output_dir, out_mask_name), mask)
-
-            total_saved += 1
+        for suffix, aug_image in augmented_versions.items():
+            save_augmented_pair(
+                output_val_dir,
+                base_name,
+                ext,
+                suffix,
+                aug_image,
+                mask,
+            )
+            total_pairs_saved += 1
 
     print("=" * 60)
-    print("Validation noise/exposure set created.")
-    print(f"Input folder  : {input_val_dir}")
-    print(f"Output folder : {output_dir}")
-    print(f"Original pairs: {len(pairs)}")
-    print(f"Saved pairs   : {total_saved}")
-    print(f"PNG files     : {total_saved * 2}")
+    print("Validation robustness set created.")
+    print(f"Input validation folder : {input_val_dir}")
+    print(f"Output folder           : {output_val_dir}")
+    print(f"Original pairs          : {len(pairs)}")
+    print(f"Total pairs saved       : {total_pairs_saved}")
+    print(f"Actual PNG files        : {total_pairs_saved * 2}")
     print("=" * 60)
 
 
 if __name__ == "__main__":
-    create_val_noise_exposure(INPUT_VAL_DIR, OUTPUT_VAL_NOISE_DIR)
+    create_robustness_validation_set(INPUT_VAL_DIR, OUTPUT_VAL_DIR)
